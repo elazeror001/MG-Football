@@ -75,6 +75,10 @@
         @media print {
             body { background: white; padding: 0; margin: 0; }
             .controls-container { display: none !important; }
+            
+            /* เพิ่มบรรทัดนี้ลงไป ป้องกันหน้าจอดำติดไปตอนพริ้นท์ */
+            #loadingOverlay { display: none !important; } 
+
             .a4-page { box-shadow: none; margin: 0; padding: 8mm 6mm 2mm 6mm; width: 210mm; height: 297mm; max-height: 297mm; box-sizing: border-box; overflow: hidden; page-break-after: avoid; }
             .logo-container, .photo-box { border: 1px solid #000; }
             .logo-container:hover::after, .photo-box:hover::after { display: none; }
@@ -302,17 +306,27 @@
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                 });
                 const result = await response.json();
-                if (result.status === "success") {
-                    if (confirm("✅ ส่งข้อมูลสำเร็จ! ผู้จัดได้รับข้อมูลเรียบร้อยแล้ว\n\nคุณต้องการ 'พิมพ์หน้าจอนี้' หรือ 'บันทึกเป็น PDF' เก็บไว้เป็นหลักฐานหรือไม่?\n\n• กดตกลง (OK) เพื่อพิมพ์\n• กดยกเลิก (Cancel) เพื่อล้างหน้าจอ")) {
-                        window.print();
-                    }
-                    clearData(false);
-                } else alert("❌ เกิดข้อผิดพลาด: " + result.message);
-            } catch (error) {
-                alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
-            } finally {
+                
+                // 1. ซ่อนหน้าจอ Loading ทันทีที่ส่งข้อมูลเสร็จ (ก่อนที่จะเด้งถามพิมพ์)
                 document.getElementById('loadingOverlay').style.display = 'none';
-            }
+
+                if (result.status === "success") {
+                    if (confirm("✅ ส่งข้อมูลสำเร็จ! ผู้จัดได้รับข้อมูลเรียบร้อยแล้ว\n\nคุณต้องการ 'พิมพ์หน้าจอนี้' เก็บไว้เป็นหลักฐานหรือไม่?\n\n• กดตกลง (OK) เพื่อพิมพ์ข้อมูล\n• กดยกเลิก (Cancel) เพื่อล้างหน้าจอ")) {
+                        // ถ้ากดพิมพ์ ระบบจะดึงภาพไปแสดง และยังไม่ล้างข้อมูล
+                        window.print();
+                    } else {
+                        // ถ้ากดกดยกเลิก (ไม่พิมพ์) ให้ล้างหน้าจอกลับเป็นหน้าเปล่าได้เลย
+                        clearData(false);
+                    }
+                } else {
+                    alert("❌ เกิดข้อผิดพลาด: " + result.message);
+                }
+            } catch (error) {
+                // กรณี Error ก็ต้องปิดหน้าจอ Loading เช่นกัน
+                document.getElementById('loadingOverlay').style.display = 'none';
+                alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+            } 
+            // ลบ block finally เดิมทิ้งไป เพื่อไม่ให้โค้ดทำงานซ้อนทับกัน
         }
 
         // ==========================================
