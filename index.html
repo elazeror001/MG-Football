@@ -96,6 +96,7 @@
         <div class="controls-row" id="userControls">
             <button class="btn-primary" onclick="document.getElementById('logoUpload').click()">+ เพิ่มโลโก้ทีม</button>
             <button class="btn-danger" onclick="clearData()">🧹 ล้างข้อมูล</button>
+	        <button class="btn-success" onclick="window.print()">🖨️ พิมพ์ข้อมูล (Print)</button>
             <button class="btn-info" style="font-size: 16px; padding: 10px 20px;" onclick="submitDataToServer()">📤 ส่งข้อมูลเข้าระบบ</button>
             
             <div style="flex-basis: 100%; text-align: right; margin-top: 10px;">
@@ -300,10 +301,13 @@
                 });
                 const result = await response.json();
                 if (result.status === "success") {
-                    alert("✅ ส่งข้อมูลสำเร็จ! ผู้จัดได้รับข้อมูลของคุณเรียบร้อยแล้ว");
-                    clearData(false);
-                } else alert("❌ เกิดข้อผิดพลาด: " + result.message);
-            } catch (error) {
+                    if (confirm("✅ ส่งข้อมูลสำเร็จ! ผู้จัดได้รับข้อมูลเรียบร้อยแล้ว\n\nคุณต้องการ 'พิมพ์หน้าจอนี้' หรือ 'บันทึกเป็น PDF' เก็บไว้เป็นหลักฐานหรือไม่?\n\n• กดตกลง (OK) เพื่อพิมพ์\n• กดยกเลิก (Cancel) เพื่อล้างหน้าจอ")) {
+                        window.print(); // สั่งพิมพ์
+                    }
+                    clearData(false); // ล้างหน้าจอกลับเป็นหน้าเปล่า
+                } else {
+                    alert("❌ เกิดข้อผิดพลาด: " + result.message);
+                } catch (error) {
                 alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
             } finally {
                 document.getElementById('loadingOverlay').style.display = 'none';
