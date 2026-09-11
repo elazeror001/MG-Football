@@ -96,7 +96,8 @@
         <div class="controls-row" id="userControls">
             <button class="btn-primary" onclick="document.getElementById('logoUpload').click()">+ เพิ่มโลโก้ทีม</button>
             <button class="btn-danger" onclick="clearData()">🧹 ล้างข้อมูล</button>
-	        <button class="btn-success" onclick="window.print()">🖨️ พิมพ์ข้อมูล (Print)</button>
+            
+            <button class="btn-success" onclick="window.print()">🖨️ พิมพ์ข้อมูล (Print)</button>
             <button class="btn-info" style="font-size: 16px; padding: 10px 20px;" onclick="submitDataToServer()">📤 ส่งข้อมูลเข้าระบบ</button>
             
             <div style="flex-basis: 100%; text-align: right; margin-top: 10px;">
@@ -114,6 +115,7 @@
             <button class="btn-info" onclick="displaySelectedTeam()">👁️ 2. แสดงข้อมูลบนกระดาษ</button>
             <button class="btn-success" onclick="window.print()">🖨️ 3. พิมพ์ (Print)</button>
             <button class="btn-danger" onclick="deleteSelectedTeam()">🗑️ ลบข้อมูลทีมนี้</button>
+            
             <div style="flex-basis: 100%; text-align: right; margin-top: 10px;">
                 <button class="btn-danger" style="font-size: 12px; padding: 4px 8px;" onclick="toggleAdminMode(false)">❌ ออกจากโหมดผู้จัดงาน</button>
             </div>
@@ -142,7 +144,10 @@
                 <input type="text" class="dotted-input team-name-input" id="docTeamName" placeholder="พิมพ์ชื่อทีมที่นี่...">
             </div>
         </div>
+        
+        <!-- ส่วนนี้คือตารางที่หายไป ผมใส่กลับเข้ามาให้แล้วครับ -->
         <div class="player-grid" id="playerGrid"></div>
+        
     </div>
 
     <script>
@@ -151,8 +156,7 @@
         // ==========================================
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwOky4I3-xul_25tSrMVR2TKJSuPiPgVSnoppitAQonQqSBAVolyRBsKhv72FidYzzAig/exec"; 
         
-        // รหัสผ่านสำหรับเข้าสู่โหมด Admin (เปลี่ยนได้ตามต้องการ)
-        const ADMIN_PASSWORD = "1234";
+        const ADMIN_PASSWORD = "1234"; // รหัสผ่านเข้าโหมดผู้จัด
 
         let currentPlayerPhotoTarget = null;
         let allTeamsData = {}; 
@@ -160,7 +164,7 @@
 
         window.onload = () => { initGrid(); };
 
-        // สร้างช่องผังนักกีฬา (ใช้ร่วมกัน)
+        // สร้างช่องผังนักกีฬา
         function initGrid() {
             const grid = document.getElementById('playerGrid');
             grid.innerHTML = '';
@@ -204,9 +208,8 @@
                     isAdminMode = true;
                     document.getElementById('userControls').style.display = 'none';
                     document.getElementById('adminControls').style.display = 'flex';
-                    // ปิดการคลิกอัปโหลดรูปในโหมดแอดมิน
                     document.getElementById('logoClickArea').onclick = null;
-                    clearData(false); // ล้างหน้ากระดาษเตรียมดึงข้อมูล
+                    clearData(false);
                     alert("เข้าสู่โหมดผู้จัดงานเรียบร้อยแล้ว");
                 } else if (pass !== null) {
                     alert("❌ รหัสผ่านไม่ถูกต้อง");
@@ -215,17 +218,16 @@
                 isAdminMode = false;
                 document.getElementById('userControls').style.display = 'flex';
                 document.getElementById('adminControls').style.display = 'none';
-                // เปิดการคลิกอัปโหลดรูปกลับคืนมา
                 document.getElementById('logoClickArea').onclick = () => document.getElementById('logoUpload').click();
                 clearData(false);
             }
         }
 
         // ==========================================
-        // ฟังก์ชันฝั่ง User (กรอกข้อมูล, บีบอัดรูป, ส่งข้อมูล)
+        // ฟังก์ชันฝั่ง User
         // ==========================================
         function triggerPlayerUpload(element) {
-            if(isAdminMode) return; // ถ้าเป็นแอดมินไม่ให้อัปโหลดทับ
+            if(isAdminMode) return; 
             currentPlayerPhotoTarget = element;
             document.getElementById('playerPhotoUpload').click();
         }
@@ -242,7 +244,7 @@
                 imgElement.onload = function() {
                     const canvas = document.createElement('canvas');
                     let width = imgElement.width, height = imgElement.height;
-                    const MAX_SIZE = 400; // บีบอัดขนาด
+                    const MAX_SIZE = 400; 
                     if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
                     else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
 
@@ -302,12 +304,11 @@
                 const result = await response.json();
                 if (result.status === "success") {
                     if (confirm("✅ ส่งข้อมูลสำเร็จ! ผู้จัดได้รับข้อมูลเรียบร้อยแล้ว\n\nคุณต้องการ 'พิมพ์หน้าจอนี้' หรือ 'บันทึกเป็น PDF' เก็บไว้เป็นหลักฐานหรือไม่?\n\n• กดตกลง (OK) เพื่อพิมพ์\n• กดยกเลิก (Cancel) เพื่อล้างหน้าจอ")) {
-                        window.print(); // สั่งพิมพ์
+                        window.print();
                     }
-                    clearData(false); // ล้างหน้าจอกลับเป็นหน้าเปล่า
-                } else {
-                    alert("❌ เกิดข้อผิดพลาด: " + result.message);
-                } catch (error) {
+                    clearData(false);
+                } else alert("❌ เกิดข้อผิดพลาด: " + result.message);
+            } catch (error) {
                 alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
             } finally {
                 document.getElementById('loadingOverlay').style.display = 'none';
@@ -315,7 +316,7 @@
         }
 
         // ==========================================
-        // ฟังก์ชันฝั่ง Admin (ดึงข้อมูล, เเสดงผล)
+        // ฟังก์ชันฝั่ง Admin
         // ==========================================
         async function fetchTeamsData() {
             if(WEB_APP_URL.includes("ใส่_URL")) { alert("โปรดตั้งค่า WEB_APP_URL ในโค้ดก่อนครับ"); return; }
@@ -346,13 +347,12 @@
             if (!teamName) { alert("⚠️ กรุณาเลือกทีมจากรายชื่อก่อนครับ"); return; }
 
             const data = allTeamsData[teamName];
-            clearData(false); // ล้างกระดาษก่อนลงข้อมูลใหม่
+            clearData(false);
 
             document.getElementById('docTournament').value = data.tournament || '';
             document.getElementById('docAge').value = data.age || '';
             document.getElementById('docTeamName').value = data.teamName || '';
 
-            // แปลงลิงก์โลโก้ให้ผ่านระบบความปลอดภัยของ Google
             const fixedLogoUrl = fixDriveUrl(data.logoUrl);
             if (fixedLogoUrl) {
                 document.getElementById('teamLogo').src = fixedLogoUrl;
@@ -363,15 +363,12 @@
             data.members.forEach((member, index) => {
                 if(index < 18) {
                     const cell = document.getElementById(`cell-${index}`);
-                    
-                    // แปลงลิงก์รูปนักกีฬา
                     const fixedPhotoUrl = fixDriveUrl(member.photoUrl);
                     if(fixedPhotoUrl) {
                         cell.querySelector('.player-img').src = fixedPhotoUrl;
                         cell.querySelector('.player-img').style.display = 'block';
                         cell.querySelector('.photo-placeholder').style.display = 'none';
                     }
-                    
                     cell.querySelector('.field1').value = member.field1 || '';
                     cell.querySelector('.field2').value = member.field2 || '';
                     cell.querySelector('.field3').value = member.field3 || '';
@@ -379,19 +376,43 @@
             });
         }
 
-        // ฟังก์ชันเสริมสำหรับแก้ปัญหา Google Drive ไม่แสดงรูป
-        function fixDriveUrl(url) {
-            if (!url) return '';
-            if (url.includes('drive.google.com/uc?id=')) {
-                // เปลี่ยนเป็นลิงก์ thumbnail เพื่อให้แสดงบนเว็บได้
-                return url.replace('drive.google.com/uc?id=', 'drive.google.com/thumbnail?id=') + '&sz=w500';
+        async function deleteSelectedTeam() {
+            const teamName = document.getElementById('teamSelect').value;
+            if (!teamName) { alert("⚠️ กรุณาเลือกทีมที่ต้องการลบจาก Dropdown ก่อนครับ"); return; }
+            if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของทีม "${teamName}" ออกจากระบบอย่างถาวร?\n(รายชื่อใน Sheet และรูปภาพใน Drive จะถูกลบทิ้ง)`)) return;
+
+            document.getElementById('loadingText').innerText = "กำลังลบข้อมูลในฐานข้อมูล...";
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST', body: JSON.stringify({ action: "delete", teamName: teamName }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                const result = await response.json();
+                if (result.status === "success") {
+                    alert(`✅ ลบข้อมูลทีม "${teamName}" เรียบร้อยแล้ว`);
+                    clearData(false); 
+                    fetchTeamsData(); 
+                } else alert("❌ เกิดข้อผิดพลาด: " + result.message);
+            } catch (error) {
+                alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+            } finally {
+                document.getElementById('loadingOverlay').style.display = 'none';
             }
-            return url;
         }
 
         // ==========================================
         // ฟังก์ชันช่วยเหลือทั่วไป
         // ==========================================
+        function fixDriveUrl(url) {
+            if (!url) return '';
+            if (url.includes('drive.google.com/uc?id=')) {
+                return url.replace('drive.google.com/uc?id=', 'drive.google.com/thumbnail?id=') + '&sz=w500';
+            }
+            return url;
+        }
+
         function clearData(ask = true) {
             if(ask && !confirm('ต้องการล้างหน้ากระดาษใช่หรือไม่?')) return;
             
@@ -405,44 +426,9 @@
             document.querySelectorAll('.player-img').forEach(img => { img.style.display = 'none'; img.src = ''; });
             document.querySelectorAll('.photo-placeholder').forEach(ph => ph.style.display = 'block');
             
-            // รีเซ็ตหมายเลขนักกีฬา 1-15
-            for(let i=0; i<15; i++) document.getElementById(`cell-${i}`).querySelector('.field1').value = i+1;
-        }
-	async function deleteSelectedTeam() {
-            const teamName = document.getElementById('teamSelect').value;
-            if (!teamName) {
-                alert("⚠️ กรุณาเลือกทีมที่ต้องการลบจาก Dropdown ก่อนครับ"); 
-                return;
-            }
-
-            if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของทีม "${teamName}" ออกจากระบบอย่างถาวร?\n(รายชื่อใน Sheet และรูปภาพใน Drive จะถูกลบทิ้ง)`)) {
-                return;
-            }
-
-            document.getElementById('loadingText').innerText = "กำลังลบข้อมูลในฐานข้อมูล...";
-            document.getElementById('loadingOverlay').style.display = 'flex';
-
-            try {
-                // ส่งคำสั่ง action: "delete" ไปยัง Apps Script
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST', 
-                    body: JSON.stringify({ action: "delete", teamName: teamName }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                });
-                
-                const result = await response.json();
-                
-                if (result.status === "success") {
-                    alert(`✅ ลบข้อมูลทีม "${teamName}" เรียบร้อยแล้ว`);
-                    clearData(false); // ล้างหน้ากระดาษ
-                    fetchTeamsData(); // โหลดรายชื่อใน Dropdown ใหม่เพื่ออัปเดต
-                } else {
-                    alert("❌ เกิดข้อผิดพลาด: " + result.message);
-                }
-            } catch (error) {
-                alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
-            } finally {
-                document.getElementById('loadingOverlay').style.display = 'none';
+            for(let i=0; i<15; i++) {
+                const cell = document.getElementById(`cell-${i}`);
+                if(cell) cell.querySelector('.field1').value = i+1;
             }
         }
     </script>
