@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการผังนักกีฬาฟุตบอล</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --primary-font: 'Sarabun', sans-serif; --border-color: #000; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--primary-font); background-color: #f0f2f5; color: #000; font-size: 14px; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+
+        /* แผงควบคุม */
+        .controls-container { width: 100%; max-width: 210mm; margin-bottom: 20px; }
+        .controls-row {
+            background: #fff; padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center;
+        }
+
+        /* ซ่อนโหมดแอดมินตอนเริ่มต้น */
+        #adminControls { display: none; background: #e3f2fd; border: 2px solid #90caf9; }
+
+        button { font-family: var(--primary-font); padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; }
+        .btn-primary { background: #0056b3; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: #000; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-dark { background: #343a40; color: white; }
+
+        select { padding: 8px; font-family: var(--primary-font); border-radius: 4px; border: 1px solid #ccc; font-size: 14px; min-width: 250px; }
+
+        /* หน้ากระดาษ A4 */
+        .a4-page { width: 210mm; min-height: 297mm; background: white; padding: 10mm 15mm; box-shadow: 0 0 10px rgba(0,0,0,0.2); position: relative; }
+        .document-header { text-align: center; margin-bottom: 10px; }
+        .logo-container { width: 75px; height: 75px; margin: 0 auto 5px auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; border-radius: 50%; overflow: hidden; }
+        .logo-container:hover::after { content: 'คลิกเพิ่มโลโก้'; position: absolute; background: rgba(0,0,0,0.6); color: white; font-size: 12px; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .logo-img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .logo-placeholder { font-size: 12px; color: #888; }
+        h1 { font-size: 17px; font-weight: bold; margin-bottom: 5px; }
+
+        .team-name-section { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; font-weight: bold;}
+        .dotted-input { border: none; border-bottom: 1px dotted var(--border-color); font-family: var(--primary-font); font-size: 14px; outline: none; background: transparent; text-align: center; }
+        .team-name-input { width: 250px; font-size: 15px; font-weight: bold; }
+        .age-input { width: 50px; font-size: 15px; font-weight: bold; }
+        .tournament-name-input { width: 90%; max-width: 600px; font-size: 16px; font-weight: bold; margin-bottom: 8px; }
+
+        /* ผังนักกีฬา Grid */
+        .player-grid { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(4, auto); gap: 4px; width: 100%; }
+        .player-cell { border: 1px solid var(--border-color); padding: 3px; display: flex; flex-direction: column; align-items: center; }
+        .cell-header { font-weight: bold; margin-bottom: 2px; font-size: 12px; }
+        
+        .photo-box { width: 100%; aspect-ratio: 1 / 1; border: 1px solid var(--border-color); margin-bottom: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; background-color: #fcfcfc; overflow: hidden; }
+        .photo-box:hover::after { content: 'คลิกใส่รูป'; position: absolute; background: rgba(0,0,0,0.5); color: white; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+        .player-img { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .photo-placeholder { text-align: center; color: #666; font-size: 11px; }
+
+        .form-group { width: 100%; display: flex; align-items: center; margin-bottom: 1px; font-size: 11px; }
+        .form-group label { white-space: nowrap; margin-right: 4px; }
+        .form-group .dotted-input { flex-grow: 1; width: 10px; text-align: left; padding-left: 3px; }
+        .number-input { text-align: center !important; font-weight: bold; }
+        input[type="file"] { display: none; }
+
+        /* หน้าจอ Loading */
+        #loadingOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; color: white;
+        }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @page { size: A4 portrait; margin: 0mm; }
+        @media print {
+            body { background: white; padding: 0; margin: 0; }
+            .controls-container { display: none !important; }
+            .a4-page { box-shadow: none; margin: 0; padding: 8mm 6mm 2mm 6mm; width: 210mm; height: 297mm; max-height: 297mm; box-sizing: border-box; overflow: hidden; page-break-after: avoid; }
+            .logo-container, .photo-box { border: 1px solid #000; }
+            .logo-container:hover::after, .photo-box:hover::after { display: none; }
+            .dotted-input::placeholder { color: transparent; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <h2 id="loadingText">กำลังประมวลผลข้อมูล...</h2>
+    </div>
+
+    <!-- แผงควบคุมทั้งหมด -->
+    <div class="controls-container">
+        
+        <!-- แผงสำหรับผู้ใช้งานทั่วไป (กรอกข้อมูล) -->
+        <div class="controls-row" id="userControls">
+            <button class="btn-primary" onclick="document.getElementById('logoUpload').click()">+ เพิ่มโลโก้ทีม</button>
+            <button class="btn-danger" onclick="clearData()">🧹 ล้างข้อมูล</button>
+            <button class="btn-info" style="font-size: 16px; padding: 10px 20px;" onclick="submitDataToServer()">📤 ส่งข้อมูลเข้าระบบ</button>
+            
+            <div style="flex-basis: 100%; text-align: right; margin-top: 10px;">
+                <button class="btn-dark" style="font-size: 12px; padding: 4px 8px;" onclick="toggleAdminMode(true)">🔐 โหมดผู้จัดงาน</button>
+            </div>
+        </div>
+
+        <!-- แผงสำหรับแอดมิน (ดึงข้อมูลและพิมพ์) -->
+        <div class="controls-row" id="adminControls">
+            <h3 style="color: #0056b3; width: 100%; text-align: center; margin-bottom: 10px;">🛠️ ระบบจัดการข้อมูลทีม (สำหรับผู้จัด)</h3>
+            <button class="btn-primary" onclick="fetchTeamsData()">🔄 1. โหลดรายชื่อจากฐานข้อมูล</button>
+            <select id="teamSelect">
+                <option value="">-- กรุณากดปุ่มโหลดข้อมูลก่อน --</option>
+            </select>
+            <button class="btn-info" onclick="displaySelectedTeam()">👁️ 2. แสดงข้อมูลบนกระดาษ</button>
+            <button class="btn-success" onclick="window.print()">🖨️ 3. พิมพ์ (Print)</button>
+            <button class="btn-danger" onclick="deleteSelectedTeam()">🗑️ ลบข้อมูลทีมนี้</button>
+            <div style="flex-basis: 100%; text-align: right; margin-top: 10px;">
+                <button class="btn-danger" style="font-size: 12px; padding: 4px 8px;" onclick="toggleAdminMode(false)">❌ ออกจากโหมดผู้จัดงาน</button>
+            </div>
+        </div>
+
+    </div>
+
+    <input type="file" id="logoUpload" accept="image/*" onchange="processImageUpload(event, 'logo')">
+    <input type="file" id="playerPhotoUpload" accept="image/*" onchange="processImageUpload(event, 'player')">
+
+    <!-- กระดาษ A4 (ใช้ร่วมกันทั้ง 2 โหมด) -->
+    <div class="a4-page" id="documentContent">
+        <div class="document-header">
+            <div class="logo-container" id="logoClickArea" onclick="document.getElementById('logoUpload').click()">
+                <span class="logo-placeholder" id="logoPlaceholder">โลโก้</span>
+                <img id="teamLogo" class="logo-img" alt="โลโก้ทีม">
+            </div>
+            <h1>แผงรูปถ่ายนักกีฬาฟุตบอลและเจ้าหน้าที่</h1>
+            <input type="text" class="dotted-input tournament-name-input" id="docTournament" value="กีฬาฟุตบอลอนุบาลกบินทร์บุรี (เมืองเก่าคัพ) ครั้งที่ 1 ประจำปี 2569" placeholder="พิมพ์ชื่อรายการแข่งขันที่นี่...">
+            
+            <div class="team-name-section">
+                <span>รุ่นอายุไม่เกิน</span>
+                <input type="text" class="dotted-input age-input" id="docAge" placeholder="...">
+                <span>ปี</span>
+                <span style="margin-left: 10px;">ชื่อทีม</span>
+                <input type="text" class="dotted-input team-name-input" id="docTeamName" placeholder="พิมพ์ชื่อทีมที่นี่...">
+            </div>
+        </div>
+        <div class="player-grid" id="playerGrid"></div>
+    </div>
+
+    <script>
+        // ==========================================
+        // ⚠️ นำ URL ของ Web App มาใส่ในบรรทัดนี้ ⚠️
+        // ==========================================
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwOky4I3-xul_25tSrMVR2TKJSuPiPgVSnoppitAQonQqSBAVolyRBsKhv72FidYzzAig/exec"; 
+        
+        // รหัสผ่านสำหรับเข้าสู่โหมด Admin (เปลี่ยนได้ตามต้องการ)
+        const ADMIN_PASSWORD = "1234";
+
+        let currentPlayerPhotoTarget = null;
+        let allTeamsData = {}; 
+        let isAdminMode = false;
+
+        window.onload = () => { initGrid(); };
+
+        // สร้างช่องผังนักกีฬา (ใช้ร่วมกัน)
+        function initGrid() {
+            const grid = document.getElementById('playerGrid');
+            grid.innerHTML = '';
+            
+            for (let i = 1; i <= 15; i++) {
+                grid.innerHTML += `
+                    <div class="player-cell" id="cell-${i-1}">
+                        <div class="cell-header">นักกีฬา</div>
+                        <div class="photo-box" onclick="triggerPlayerUpload(this)">
+                            <span class="photo-placeholder">หมายเลข ${i}</span>
+                            <img class="player-img" alt="รูปนักกีฬา">
+                        </div>
+                        <div class="form-group"><label>หมายเลข</label><input type="text" class="dotted-input number-input field1" value="${i}"></div>
+                        <div class="form-group"><label>ชื่อ</label><input type="text" class="dotted-input field2"></div>
+                        <div class="form-group"><label>สกุล</label><input type="text" class="dotted-input field3"></div>
+                    </div>`;
+            }
+
+            for (let i = 15; i < 18; i++) {
+                grid.innerHTML += `
+                    <div class="player-cell" id="cell-${i}">
+                        <div class="cell-header" style="color: #0056b3;">เจ้าหน้าที่ทีม</div>
+                        <div class="photo-box" onclick="triggerPlayerUpload(this)">
+                            <span class="photo-placeholder">รูปเจ้าหน้าที่</span>
+                            <img class="player-img" alt="รูปเจ้าหน้าที่">
+                        </div>
+                        <div class="form-group"><label>ตำแหน่ง</label><input type="text" class="dotted-input field1" style="text-align: center; font-weight: bold;" placeholder="ระบุตำแหน่ง"></div>
+                        <div class="form-group"><label>ชื่อ</label><input type="text" class="dotted-input field2"></div>
+                        <div class="form-group"><label>สกุล</label><input type="text" class="dotted-input field3"></div>
+                    </div>`;
+            }
+        }
+
+        // ==========================================
+        // ระบบสลับโหมด (User / Admin)
+        // ==========================================
+        function toggleAdminMode(turnOn) {
+            if (turnOn) {
+                const pass = prompt("🔐 กรุณาใส่รหัสผ่านสำหรับผู้จัดงาน:");
+                if (pass === ADMIN_PASSWORD) {
+                    isAdminMode = true;
+                    document.getElementById('userControls').style.display = 'none';
+                    document.getElementById('adminControls').style.display = 'flex';
+                    // ปิดการคลิกอัปโหลดรูปในโหมดแอดมิน
+                    document.getElementById('logoClickArea').onclick = null;
+                    clearData(false); // ล้างหน้ากระดาษเตรียมดึงข้อมูล
+                    alert("เข้าสู่โหมดผู้จัดงานเรียบร้อยแล้ว");
+                } else if (pass !== null) {
+                    alert("❌ รหัสผ่านไม่ถูกต้อง");
+                }
+            } else {
+                isAdminMode = false;
+                document.getElementById('userControls').style.display = 'flex';
+                document.getElementById('adminControls').style.display = 'none';
+                // เปิดการคลิกอัปโหลดรูปกลับคืนมา
+                document.getElementById('logoClickArea').onclick = () => document.getElementById('logoUpload').click();
+                clearData(false);
+            }
+        }
+
+        // ==========================================
+        // ฟังก์ชันฝั่ง User (กรอกข้อมูล, บีบอัดรูป, ส่งข้อมูล)
+        // ==========================================
+        function triggerPlayerUpload(element) {
+            if(isAdminMode) return; // ถ้าเป็นแอดมินไม่ให้อัปโหลดทับ
+            currentPlayerPhotoTarget = element;
+            document.getElementById('playerPhotoUpload').click();
+        }
+
+        function processImageUpload(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(e) {
+                const imgElement = new Image();
+                imgElement.src = e.target.result;
+                imgElement.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = imgElement.width, height = imgElement.height;
+                    const MAX_SIZE = 400; // บีบอัดขนาด
+                    if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
+                    else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(imgElement, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8); 
+
+                    if (type === 'logo') {
+                        document.getElementById('teamLogo').src = dataUrl;
+                        document.getElementById('teamLogo').style.display = 'block';
+                        document.getElementById('logoPlaceholder').style.display = 'none';
+                    } else if (type === 'player' && currentPlayerPhotoTarget) {
+                        currentPlayerPhotoTarget.querySelector('.player-img').src = dataUrl;
+                        currentPlayerPhotoTarget.querySelector('.player-img').style.display = 'block';
+                        currentPlayerPhotoTarget.querySelector('.photo-placeholder').style.display = 'none';
+                    }
+                }
+            }
+            event.target.value = ''; 
+        }
+
+        async function submitDataToServer() {
+            if(WEB_APP_URL.includes("ใส่_URL")) { alert("โปรดตั้งค่า WEB_APP_URL ในโค้ดก่อนครับ"); return; }
+            
+            const teamName = document.getElementById('docTeamName').value.trim();
+            if (!teamName) { alert("กรุณากรอก 'ชื่อทีม' ก่อนกดส่งข้อมูลครับ"); document.getElementById('docTeamName').focus(); return; }
+            if (!confirm(`ยืนยันการส่งข้อมูลของทีม "${teamName}" เข้าระบบ?`)) return;
+
+            const teamData = {
+                tournament: document.getElementById('docTournament').value,
+                age: document.getElementById('docAge').value,
+                teamName: teamName,
+                logoImg: document.getElementById('teamLogo').src.startsWith('data:image') ? document.getElementById('teamLogo').src : null,
+                members: []
+            };
+
+            for(let i=0; i<18; i++) {
+                const cell = document.getElementById(`cell-${i}`);
+                let imgEl = cell.querySelector('.player-img');
+                teamData.members.push({
+                    photo: imgEl.src.startsWith('data:image') ? imgEl.src : null,
+                    field1: cell.querySelector('.field1').value.trim(),
+                    field2: cell.querySelector('.field2').value.trim(),
+                    field3: cell.querySelector('.field3').value.trim()
+                });
+            }
+
+            document.getElementById('loadingText').innerText = "กำลังอัปโหลดรูปภาพและส่งข้อมูล... (ห้ามปิดหน้าต่างนี้)";
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST', body: JSON.stringify(teamData),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                const result = await response.json();
+                if (result.status === "success") {
+                    alert("✅ ส่งข้อมูลสำเร็จ! ผู้จัดได้รับข้อมูลของคุณเรียบร้อยแล้ว");
+                    clearData(false);
+                } else alert("❌ เกิดข้อผิดพลาด: " + result.message);
+            } catch (error) {
+                alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+            } finally {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        // ==========================================
+        // ฟังก์ชันฝั่ง Admin (ดึงข้อมูล, เเสดงผล)
+        // ==========================================
+        async function fetchTeamsData() {
+            if(WEB_APP_URL.includes("ใส่_URL")) { alert("โปรดตั้งค่า WEB_APP_URL ในโค้ดก่อนครับ"); return; }
+            
+            document.getElementById('loadingText').innerText = "กำลังดึงข้อมูลจากฐานข้อมูล...";
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            try {
+                const response = await fetch(WEB_APP_URL);
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    allTeamsData = result.data;
+                    const select = document.getElementById('teamSelect');
+                    select.innerHTML = '<option value="">-- เลือกทีมเพื่อแสดงบนกระดาษ --</option>';
+                    for (let team in allTeamsData) select.innerHTML += `<option value="${team}">${team} (U${allTeamsData[team].age})</option>`;
+                    alert("✅ โหลดข้อมูลสำเร็จ! เลือกชื่อทีมในช่องถัดไปได้เลย");
+                } else alert("❌ โหลดข้อมูลไม่สำเร็จ");
+            } catch (error) {
+                alert("❌ เชื่อมต่อฐานข้อมูลล้มเหลว");
+            } finally {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        function displaySelectedTeam() {
+            const teamName = document.getElementById('teamSelect').value;
+            if (!teamName) { alert("⚠️ กรุณาเลือกทีมจากรายชื่อก่อนครับ"); return; }
+
+            const data = allTeamsData[teamName];
+            clearData(false); // ล้างกระดาษก่อนลงข้อมูลใหม่
+
+            document.getElementById('docTournament').value = data.tournament || '';
+            document.getElementById('docAge').value = data.age || '';
+            document.getElementById('docTeamName').value = data.teamName || '';
+
+            // แปลงลิงก์โลโก้ให้ผ่านระบบความปลอดภัยของ Google
+            const fixedLogoUrl = fixDriveUrl(data.logoUrl);
+            if (fixedLogoUrl) {
+                document.getElementById('teamLogo').src = fixedLogoUrl;
+                document.getElementById('teamLogo').style.display = 'block';
+                document.getElementById('logoPlaceholder').style.display = 'none';
+            }
+
+            data.members.forEach((member, index) => {
+                if(index < 18) {
+                    const cell = document.getElementById(`cell-${index}`);
+                    
+                    // แปลงลิงก์รูปนักกีฬา
+                    const fixedPhotoUrl = fixDriveUrl(member.photoUrl);
+                    if(fixedPhotoUrl) {
+                        cell.querySelector('.player-img').src = fixedPhotoUrl;
+                        cell.querySelector('.player-img').style.display = 'block';
+                        cell.querySelector('.photo-placeholder').style.display = 'none';
+                    }
+                    
+                    cell.querySelector('.field1').value = member.field1 || '';
+                    cell.querySelector('.field2').value = member.field2 || '';
+                    cell.querySelector('.field3').value = member.field3 || '';
+                }
+            });
+        }
+
+        // ฟังก์ชันเสริมสำหรับแก้ปัญหา Google Drive ไม่แสดงรูป
+        function fixDriveUrl(url) {
+            if (!url) return '';
+            if (url.includes('drive.google.com/uc?id=')) {
+                // เปลี่ยนเป็นลิงก์ thumbnail เพื่อให้แสดงบนเว็บได้
+                return url.replace('drive.google.com/uc?id=', 'drive.google.com/thumbnail?id=') + '&sz=w500';
+            }
+            return url;
+        }
+
+        // ==========================================
+        // ฟังก์ชันช่วยเหลือทั่วไป
+        // ==========================================
+        function clearData(ask = true) {
+            if(ask && !confirm('ต้องการล้างหน้ากระดาษใช่หรือไม่?')) return;
+            
+            document.querySelectorAll('input[type="text"]').forEach(input => {
+                if(!input.classList.contains('number-input') && !input.classList.contains('tournament-name-input')) input.value = '';
+            });
+            document.getElementById('teamLogo').style.display = 'none';
+            document.getElementById('teamLogo').src = '';
+            document.getElementById('logoPlaceholder').style.display = 'block';
+            
+            document.querySelectorAll('.player-img').forEach(img => { img.style.display = 'none'; img.src = ''; });
+            document.querySelectorAll('.photo-placeholder').forEach(ph => ph.style.display = 'block');
+            
+            // รีเซ็ตหมายเลขนักกีฬา 1-15
+            for(let i=0; i<15; i++) document.getElementById(`cell-${i}`).querySelector('.field1').value = i+1;
+        }
+	async function deleteSelectedTeam() {
+            const teamName = document.getElementById('teamSelect').value;
+            if (!teamName) {
+                alert("⚠️ กรุณาเลือกทีมที่ต้องการลบจาก Dropdown ก่อนครับ"); 
+                return;
+            }
+
+            if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของทีม "${teamName}" ออกจากระบบอย่างถาวร?\n(รายชื่อใน Sheet และรูปภาพใน Drive จะถูกลบทิ้ง)`)) {
+                return;
+            }
+
+            document.getElementById('loadingText').innerText = "กำลังลบข้อมูลในฐานข้อมูล...";
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            try {
+                // ส่งคำสั่ง action: "delete" ไปยัง Apps Script
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST', 
+                    body: JSON.stringify({ action: "delete", teamName: teamName }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === "success") {
+                    alert(`✅ ลบข้อมูลทีม "${teamName}" เรียบร้อยแล้ว`);
+                    clearData(false); // ล้างหน้ากระดาษ
+                    fetchTeamsData(); // โหลดรายชื่อใน Dropdown ใหม่เพื่ออัปเดต
+                } else {
+                    alert("❌ เกิดข้อผิดพลาด: " + result.message);
+                }
+            } catch (error) {
+                alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+            } finally {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
